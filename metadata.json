@@ -1,5 +1,5 @@
 {
-  "name": "CapyMaze Quest",
-  "description": "Navigate the capybara through infinite procedural mazes, avoid predators, and answer trivia to unlock gates. Features AI-generated questions based on your chosen topic.",
+  "name": "Capy's Yuzu Quest",
+  "description": "Navigate the capybara through infinite procedural mazes, avoid predators, and answer quizzes to unlock gates. Features AI-generated questions based on your chosen topic.",
   "requestFramePermissions": []
 }

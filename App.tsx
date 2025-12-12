@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainMenu from './components/MainMenu';
 import Game from './components/Game';
-import { GameSettings, Language, GameState } from './types';
+import { GameSettings, GameState } from './types';
 import { TRANSLATIONS } from './constants';
+import { loadSettings, saveSettings } from './services/storageService';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<GameState>(GameState.MENU);
-  const [settings, setSettings] = useState<GameSettings>({
-    topic: 'Capybaras',
-    language: Language.EN_US,
-  });
+  
+  // Initialize from LocalStorage
+  const [settings, setSettings] = useState<GameSettings>(loadSettings);
   const [finalScore, setFinalScore] = useState(0);
+
+  // Persistence effect
+  useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
 
   const startGame = () => {
     setAppState(GameState.PLAYING);
@@ -59,6 +64,7 @@ const App: React.FC = () => {
     <Game 
       settings={settings} 
       onGameOver={handleGameOver}
+      onExit={returnToMenu}
     />
   );
 };

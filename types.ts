@@ -1,3 +1,4 @@
+
 export enum Language {
   EN_US = 'en-US',
   ES_MX = 'es-MX',
@@ -22,6 +23,18 @@ export enum EntityType {
   POND = 6,
 }
 
+export enum PredatorType {
+  JAGUAR = 'JAGUAR',
+  ANACONDA = 'ANACONDA',
+  CAIMAN = 'CAIMAN',
+}
+
+export enum TreatType {
+  WATERMELON = 'WATERMELON',
+  CORN = 'CORN',
+  PUMPKIN = 'PUMPKIN',
+}
+
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
 export interface Position {
@@ -39,6 +52,12 @@ export interface Predator {
   id: number;
   position: Position;
   direction: Direction;
+  type: PredatorType;
+}
+
+export interface Treat {
+  position: Position;
+  type: TreatType;
 }
 
 export interface LevelConfig {
@@ -48,6 +67,16 @@ export interface LevelConfig {
 }
 
 export interface GameSettings {
-  topic: string;
   language: Language;
+  enableQuizzes: boolean;
+  selectedPrompt: string;
+  favoritePrompts: string[];
+}
+
+export type TriviaContextType = 'GATE' | 'TREAT' | 'PREDATOR';
+
+export interface TriviaContext {
+  type: TriviaContextType;
+  pos?: Position; // For Gates and Treats
+  predatorId?: number; // For Predators
 }

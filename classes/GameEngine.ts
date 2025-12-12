@@ -1,6 +1,7 @@
+
 import { Application, Container, Graphics, Sprite, Texture, Assets } from 'pixi.js';
-import { BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, PALETTE } from '../constants';
-import { EntityType, Position, Direction, Predator } from '../types';
+import { BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, PALETTE, ASSET_URLS } from '../constants';
+import { EntityType, Position, Direction, Predator, Treat, PredatorType, TreatType } from '../types';
 import { generateMaze } from '../services/levelGenerator';
 
 type GameEventCallback = (event: string, data?: any) => void;
@@ -25,13 +26,15 @@ export class GameEngine {
   // State
   private currentDirection: Direction | null = null;
   private nextDirection: Direction | null = null;
+  private heldKeys: Set<string> = new Set(); // For fluid input
+  
   private moveTimer: number = 0;
-  private readonly MOVE_INTERVAL = 12; 
+  private readonly MOVE_INTERVAL = 12; // Adjusted for smoothness
   private isMoving: boolean = false;
   private targetPos: Position | null = null;
   
   private predatorTimer: number = 0;
-  private readonly PREDATOR_INTERVAL = 35;
+  private readonly PREDATOR_INTERVAL = 80; // Slower patrol
   
   private eventCallback: GameEventCallback;
   private isPaused: boolean = false;
@@ -56,92 +59,72 @@ export class GameEngine {
     // @ts-ignore
     document.getElementById('game-canvas-container')?.appendChild(this.app.canvas);
     
-    // Generate Textures Programmatically
-    this.generateTextures();
+    // Load Assets
+    const bundle = [
+        { alias: 'capybara', src: ASSET_URLS.CAPYBARA },
+        { alias: 'jaguar', src: ASSET_URLS.JAGUAR },
+        { alias: 'anaconda', src: ASSET_URLS.ANACONDA },
+        { alias: 'caiman', src: ASSET_URLS.CAIMAN },
+        { alias: 'wood', src: ASSET_URLS.WOOD },
+        { alias: 'pumpkin', src: ASSET_URLS.PUMPKIN },
+        { alias: 'watermelon', src: ASSET_URLS.WATERMELON },
+        { alias: 'corn', src: ASSET_URLS.CORN },
+    ];
+    
+    await Assets.load(bundle);
+
+    // Map loaded assets
+    this.textures.PLAYER = Assets.get('capybara');
+    this.textures[PredatorType.JAGUAR] = Assets.get('jaguar');
+    this.textures[PredatorType.ANACONDA] = Assets.get('anaconda');
+    this.textures[PredatorType.CAIMAN] = Assets.get('caiman');
+    this.textures.GATE = Assets.get('wood');
+    this.textures[TreatType.PUMPKIN] = Assets.get('pumpkin');
+    this.textures[TreatType.WATERMELON] = Assets.get('watermelon');
+    this.textures[TreatType.CORN] = Assets.get('corn');
+
+    // Generate procedural background textures
+    this.generateProceduralTextures();
 
     this.app.stage.addChild(this.gameContainer);
     this.gameContainer.addChild(this.floor);
     this.gameContainer.addChild(this.walls);
 
     window.addEventListener('keydown', this.handleKeyDown);
+    window.addEventListener('keyup', this.handleKeyUp);
     this.app.ticker.add(this.update.bind(this));
   }
 
-  private generateTextures() {
+  private generateProceduralTextures() {
     const g = new Graphics();
+    const S = CELL_SIZE; // scaling factor
 
     // 1. DIRT FLOOR
     g.clear();
-    g.rect(0, 0, CELL_SIZE, CELL_SIZE);
+    g.rect(0, 0, S, S);
     g.fill(PALETTE.DIRT_BG);
-    // Add noise
     for(let i=0; i<8; i++) {
-        g.rect(Math.random()*32, Math.random()*32, 2, 2);
+        g.rect(Math.random()*S, Math.random()*S, S*0.1, S*0.1);
         g.fill(PALETTE.DIRT_NOISE);
     }
     this.textures.DIRT = this.app.renderer.generateTexture(g);
 
     // 2. BUSH WALL
     g.clear();
-    g.rect(0, 0, CELL_SIZE, CELL_SIZE);
-    g.fill(PALETTE.BUSH_MAIN); // Base
-    // Leaves
-    g.circle(8, 8, 6); g.fill(PALETTE.BUSH_LIGHT);
-    g.circle(24, 8, 5); g.fill(PALETTE.BUSH_LIGHT);
-    g.circle(16, 16, 7); g.fill(PALETTE.BUSH_DARK);
-    g.circle(8, 24, 5); g.fill(PALETTE.BUSH_DARK);
-    g.circle(24, 24, 6); g.fill(PALETTE.BUSH_LIGHT);
+    g.rect(0, 0, S, S);
+    g.fill(PALETTE.BUSH_MAIN); 
+    g.circle(S*0.25, S*0.25, S*0.2); g.fill(PALETTE.BUSH_LIGHT);
+    g.circle(S*0.75, S*0.25, S*0.15); g.fill(PALETTE.BUSH_LIGHT);
+    g.circle(S*0.5, S*0.5, S*0.22); g.fill(PALETTE.BUSH_DARK);
     this.textures.WALL = this.app.renderer.generateTexture(g);
 
     // 3. WATER POND
     g.clear();
-    g.rect(0, 0, CELL_SIZE, CELL_SIZE);
+    g.rect(0, 0, S, S);
     g.fill(PALETTE.WATER_MAIN);
-    // Ripples
-    g.rect(4, 8, 10, 2); g.fill(PALETTE.WATER_LIGHT);
-    g.rect(18, 20, 8, 2); g.fill(PALETTE.WATER_LIGHT);
+    g.rect(S*0.1, S*0.25, S*0.3, S*0.06); g.fill(PALETTE.WATER_LIGHT);
+    g.rect(S*0.6, S*0.6, S*0.25, S*0.06); g.fill(PALETTE.WATER_LIGHT);
     this.textures.WATER = this.app.renderer.generateTexture(g);
-
-    // 4. PLAYER (CAPYBARA)
-    g.clear();
-    // Body
-    g.roundRect(4, 10, 24, 14, 4);
-    g.fill(PALETTE.CAPYBARA);
-    // Head
-    g.roundRect(20, 8, 10, 10, 3);
-    g.fill(PALETTE.CAPYBARA);
-    // Eye/Nose
-    g.rect(26, 10, 2, 2); g.fill('#000000');
-    g.rect(28, 14, 2, 2); g.fill('#221100');
-    this.textures.PLAYER = this.app.renderer.generateTexture(g);
-
-    // 5. PREDATOR (JAGUAR)
-    g.clear();
-    g.roundRect(2, 12, 28, 12, 4);
-    g.fill(PALETTE.JAGUAR);
-    // Spots
-    g.circle(8, 16, 2); g.fill('#000000');
-    g.circle(16, 18, 2); g.fill('#000000');
-    g.circle(24, 15, 2); g.fill('#000000');
-    this.textures.PREDATOR = this.app.renderer.generateTexture(g);
-
-    // 6. TREAT
-    g.clear();
-    g.circle(16, 16, 8);
-    g.fill(PALETTE.TREAT);
-    g.rect(15, 6, 2, 4); g.fill('#166534'); // Stem
-    this.textures.TREAT = this.app.renderer.generateTexture(g);
-
-    // 7. GATE
-    g.clear();
-    // Logs
-    g.rect(4, 4, 4, 24); g.fill(PALETTE.GATE);
-    g.rect(14, 4, 4, 24); g.fill(PALETTE.GATE);
-    g.rect(24, 4, 4, 24); g.fill(PALETTE.GATE);
-    // Crossbeam
-    g.rect(2, 8, 28, 4); g.fill(PALETTE.GATE);
-    g.rect(2, 20, 28, 4); g.fill(PALETTE.GATE);
-    this.textures.GATE = this.app.renderer.generateTexture(g);
   }
 
   public loadLevel(levelIndex: number) {
@@ -162,6 +145,7 @@ export class GameEngine {
     // Reset State
     this.currentDirection = null;
     this.nextDirection = null;
+    this.heldKeys.clear();
     this.isMoving = false;
     this.targetPos = null;
 
@@ -177,12 +161,10 @@ export class GameEngine {
         const px = x * CELL_SIZE;
         const py = y * CELL_SIZE;
 
-        // Draw Floor everywhere
         const floorSprite = new Sprite(this.textures.DIRT);
         floorSprite.position.set(px, py);
         this.floor.addChild(floorSprite);
 
-        // Draw Walls or Pond on top
         if (type === EntityType.WALL) {
            const wall = new Sprite(this.textures.WALL);
            wall.position.set(px, py);
@@ -190,17 +172,16 @@ export class GameEngine {
         } else if (type === EntityType.POND) {
            const water = new Sprite(this.textures.WATER);
            water.position.set(px, py);
-           // Overwrite floor with water
            this.floor.addChild(water); 
         }
       }
     }
 
-    // Instantiate Entities
-    
     // Gates
     data.gates.forEach(g => {
       const s = new Sprite(this.textures.GATE);
+      s.width = CELL_SIZE;
+      s.height = CELL_SIZE;
       s.position.set(g.x * CELL_SIZE, g.y * CELL_SIZE);
       this.gameContainer.addChild(s);
       this.gates.set(`${g.x},${g.y}`, s);
@@ -208,68 +189,120 @@ export class GameEngine {
 
     // Treats
     data.treats.forEach(t => {
-      const s = new Sprite(this.textures.TREAT);
-      s.position.set(t.x * CELL_SIZE, t.y * CELL_SIZE);
+      const texture = this.textures[t.type] || this.textures[TreatType.WATERMELON];
+      const s = new Sprite(texture);
+      s.width = CELL_SIZE;
+      s.height = CELL_SIZE;
+      s.position.set(t.position.x * CELL_SIZE, t.position.y * CELL_SIZE);
       this.gameContainer.addChild(s);
-      this.treats.set(`${t.x},${t.y}`, s);
+      this.treats.set(`${t.position.x},${t.position.y}`, s);
     });
 
     // Predators
     data.predators.forEach((p, i) => {
-      const s = new Sprite(this.textures.PREDATOR);
-      s.position.set(p.x * CELL_SIZE, p.y * CELL_SIZE);
+      const texture = this.textures[p.type] || this.textures[PredatorType.JAGUAR];
+      const s = new Sprite(texture);
+      s.width = CELL_SIZE;
+      s.height = CELL_SIZE;
+      s.position.set(p.position.x * CELL_SIZE, p.position.y * CELL_SIZE);
       this.gameContainer.addChild(s);
+      
       this.predators.push({
         sprite: s,
-        data: { id: i, position: { ...p }, direction: 'RIGHT' }
+        data: p
       });
     });
 
     // Player
     this.player = new Sprite(this.textures.PLAYER);
+    this.player.width = CELL_SIZE;
+    this.player.height = CELL_SIZE;
     this.player.position.set(this.playerPos.x * CELL_SIZE, this.playerPos.y * CELL_SIZE);
     this.gameContainer.addChild(this.player);
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
-    if (['ArrowUp', 'w', 'W'].includes(e.key)) this.nextDirection = 'UP';
-    if (['ArrowDown', 's', 'S'].includes(e.key)) this.nextDirection = 'DOWN';
-    if (['ArrowLeft', 'a', 'A'].includes(e.key)) this.nextDirection = 'LEFT';
-    if (['ArrowRight', 'd', 'D'].includes(e.key)) this.nextDirection = 'RIGHT';
+    // Prevent default scrolling for arrows
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+      e.preventDefault();
+    }
+    
+    let dir: Direction | null = null;
+    if (['ArrowUp', 'w', 'W'].includes(e.key)) dir = 'UP';
+    if (['ArrowDown', 's', 'S'].includes(e.key)) dir = 'DOWN';
+    if (['ArrowLeft', 'a', 'A'].includes(e.key)) dir = 'LEFT';
+    if (['ArrowRight', 'd', 'D'].includes(e.key)) dir = 'RIGHT';
+
+    if (dir) {
+      this.heldKeys.add(dir);
+      this.nextDirection = dir;
+    }
   };
+
+  private handleKeyUp = (e: KeyboardEvent) => {
+    let dir: Direction | null = null;
+    if (['ArrowUp', 'w', 'W'].includes(e.key)) dir = 'UP';
+    if (['ArrowDown', 's', 'S'].includes(e.key)) dir = 'DOWN';
+    if (['ArrowLeft', 'a', 'A'].includes(e.key)) dir = 'LEFT';
+    if (['ArrowRight', 'd', 'D'].includes(e.key)) dir = 'RIGHT';
+
+    if (dir) {
+      this.heldKeys.delete(dir);
+      // If the released key was the scheduled direction, check if we have others held
+      if (this.nextDirection === dir) {
+         if (this.heldKeys.size > 0) {
+             // Fallback to the last added key (rough approximation, Set doesn't guarantee order but works for this)
+             this.nextDirection = Array.from(this.heldKeys).pop() as Direction;
+         } else {
+             this.nextDirection = null;
+         }
+      }
+    }
+  }
 
   private update(ticker: any) {
     if (this.isPaused || !this.player) return;
 
     this.time += 0.1;
+    const S = CELL_SIZE;
     
-    // Bobbing Animation for entities
-    const bob = Math.sin(this.time) * 2;
-    this.player.y = (this.isMoving && this.targetPos ? this.player.y : this.playerPos.y * CELL_SIZE) + bob;
+    // Bobbing Animation
+    const bob = Math.sin(this.time) * (S * 0.05); 
+    this.player.y = (this.isMoving && this.targetPos ? this.player.y : this.playerPos.y * S) + bob;
     
     this.predators.forEach(p => {
-        p.sprite.y = p.data.position.y * CELL_SIZE + Math.cos(this.time + p.data.id) * 2;
+        p.sprite.y = p.data.position.y * S + Math.cos(this.time + p.data.id) * (S * 0.05);
     });
 
     // --- Player Movement Logic ---
     if (!this.isMoving) {
+      // Fluid Input: Check held keys if nextDirection is null
+      if (!this.nextDirection && this.heldKeys.size > 0) {
+          this.nextDirection = Array.from(this.heldKeys).pop() as Direction;
+      }
+
       if (this.nextDirection) {
         this.currentDirection = this.nextDirection;
         
-        // Flip sprite based on direction
-        if (this.currentDirection === 'LEFT') this.player.scale.x = -1;
-        if (this.currentDirection === 'RIGHT') this.player.scale.x = 1;
-        // Adjust pivot for flip (since sprite anchor is 0,0 by default, flip makes it jump)
-        if (this.player.scale.x === -1) this.player.anchor.set(1, 0);
-        else this.player.anchor.set(0, 0);
+        // Flip sprite based on direction, preserving the scale (size)
+        const scaleX = Math.abs(this.player.scale.x);
+        if (this.currentDirection === 'LEFT') {
+            this.player.scale.x = -scaleX;
+            this.player.anchor.set(1, 0); // Origin top-right (visual left)
+        }
+        if (this.currentDirection === 'RIGHT') {
+            this.player.scale.x = scaleX;
+            this.player.anchor.set(0, 0); // Origin top-left
+        }
 
         const nextPos = this.getNextPos(this.playerPos, this.currentDirection);
         
         if (this.isValidMove(nextPos)) {
-          // Check Gate
           if (this.grid[nextPos.y][nextPos.x] === EntityType.GATE) {
              this.isPaused = true;
+             // Stop movement intention on gate hit so we don't auto-walk after
              this.currentDirection = null; 
+             this.heldKeys.clear(); 
              this.eventCallback('GATE_HIT', nextPos);
           } else {
              this.targetPos = nextPos;
@@ -282,28 +315,37 @@ export class GameEngine {
       this.moveTimer++;
       const progress = this.moveTimer / this.MOVE_INTERVAL;
       
-      const startX = this.playerPos.x * CELL_SIZE;
-      const startY = this.playerPos.y * CELL_SIZE;
-      const endX = this.targetPos.x * CELL_SIZE;
-      const endY = this.targetPos.y * CELL_SIZE;
+      const startX = this.playerPos.x * S;
+      const startY = this.playerPos.y * S;
+      const endX = this.targetPos.x * S;
+      const endY = this.targetPos.y * S;
 
-      // Simple Lerp
       let currentX = startX + (endX - startX) * progress;
       let currentY = startY + (endY - startY) * progress;
       
       this.player.x = currentX;
-      // Y is handled by bobbing above, but we need base Y
       this.player.y = currentY + bob;
 
       if (this.moveTimer >= this.MOVE_INTERVAL) {
+        // MOVEMENT FINISHED
         this.isMoving = false;
         this.playerPos = { ...this.targetPos };
         this.targetPos = null;
         this.checkCollisions();
+        
+        // Stop immediately if key was released during movement
+        if (this.currentDirection && !this.heldKeys.has(this.currentDirection)) {
+            // Check if another key is held
+             if (this.heldKeys.size > 0) {
+                 this.nextDirection = Array.from(this.heldKeys).pop() as Direction;
+             } else {
+                 this.nextDirection = null;
+             }
+        }
       }
     }
 
-    // --- Predator Logic ---
+    // --- Predator Logic (Random Walk) ---
     this.predatorTimer++;
     if (this.predatorTimer > this.PREDATOR_INTERVAL) {
       this.movePredators();
@@ -311,44 +353,69 @@ export class GameEngine {
     }
 
     // --- Collisions ---
-    const px = this.player.x + 16; // Center approx
-    const py = this.player.y + 16;
+    const px = this.player.x + (S/2); 
+    const py = this.player.y + (S/2);
     
     for (const pred of this.predators) {
-      const ex = pred.sprite.x + 16;
-      const ey = pred.sprite.y + 16;
+      const ex = pred.sprite.x + (S/2);
+      const ey = pred.sprite.y + (S/2);
       const dist = Math.sqrt(Math.pow(px - ex, 2) + Math.pow(py - ey, 2));
       
-      if (dist < CELL_SIZE * 0.7) {
-        this.eventCallback('HIT_PREDATOR');
-        this.resetPlayerPosition();
+      if (dist < S * 0.7) {
+        this.isPaused = true;
+        // Stop Movement
+        this.isMoving = false;
+        this.targetPos = null;
+        // Snap player to current grid pos to avoid visual glitch during pause
+        if (this.player) {
+          this.player.x = this.playerPos.x * S;
+          this.player.y = this.playerPos.y * S;
+        }
+        
+        this.eventCallback('HIT_PREDATOR', { id: pred.data.id, pos: pred.data.position });
+        return; // Break update loop
       }
     }
   }
 
   private movePredators() {
     this.predators.forEach(p => {
-      const dirs: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
-      const validMoves = dirs.filter(d => {
-         const np = this.getNextPos(p.data.position, d);
-         // Guard for grid bounds
-         if (!this.grid || !this.grid[np.y] || this.grid[np.y][np.x] === undefined) return false;
-         
-         const cell = this.grid[np.y][np.x];
-         return cell !== EntityType.WALL && cell !== EntityType.GATE;
-      });
+      // 1. Determine valid moves
+      const { x, y } = p.data.position;
+      const candidates: Position[] = [];
+      const dirs = [{x:0,y:1}, {x:0,y:-1}, {x:1,y:0}, {x:-1,y:0}];
+      
+      for(const d of dirs) {
+          const nx = x + d.x;
+          const ny = y + d.y;
+          
+          if(nx >= 0 && nx < BOARD_WIDTH && ny >= 0 && ny < BOARD_HEIGHT) {
+              const cell = this.grid[ny][nx];
+              // Predators can walk on EMPTY or PLAYER, but not WALL, GATE, or POND
+              if(cell !== EntityType.WALL && cell !== EntityType.GATE && cell !== EntityType.POND) {
+                  candidates.push({x: nx, y: ny});
+              }
+          }
+      }
+      
+      // 2. Pick a random valid neighbor
+      if (candidates.length > 0) {
+          const next = candidates[Math.floor(Math.random() * candidates.length)];
+          p.data.position = next;
+          
+          // 3. Teleport Sprite (Retro style, no lerp for enemies for now)
+          p.sprite.x = next.x * CELL_SIZE;
+          p.sprite.y = next.y * CELL_SIZE;
 
-      if (validMoves.length > 0) {
-        const dir = validMoves[Math.floor(Math.random() * validMoves.length)];
-        p.data.position = this.getNextPos(p.data.position, dir);
-        
-        // Face direction
-        if (dir === 'RIGHT') p.sprite.scale.x = 1;
-        if (dir === 'LEFT') { p.sprite.scale.x = -1; p.sprite.anchor.set(1, 0); }
-        else p.sprite.anchor.set(0, 0);
-
-        p.sprite.x = p.data.position.x * CELL_SIZE;
-        p.sprite.y = p.data.position.y * CELL_SIZE;
+          // 4. Face direction
+          const scaleX = Math.abs(p.sprite.scale.x);
+          if (next.x > x) {
+              p.sprite.scale.x = scaleX; 
+              p.sprite.anchor.set(0, 0);
+          } else if (next.x < x) {
+              p.sprite.scale.x = -scaleX;
+              p.sprite.anchor.set(1, 0);
+          }
       }
     });
   }
@@ -359,15 +426,93 @@ export class GameEngine {
 
     if (type === EntityType.TREAT) {
       if (this.treats.has(key)) {
-        this.treats.get(key)?.destroy();
-        this.treats.delete(key);
-        this.grid[this.playerPos.y][this.playerPos.x] = EntityType.EMPTY;
-        this.eventCallback('GET_TREAT');
+         this.isPaused = true;
+         this.eventCallback('HIT_TREAT', this.playerPos);
       }
     } else if (type === EntityType.POND) {
       this.isPaused = true;
       this.eventCallback('WIN_LEVEL');
     }
+  }
+
+  public resolveTreat(pos: Position) {
+    // Treat disappears regardless of answer
+    const key = `${pos.x},${pos.y}`;
+    if (this.treats.has(key)) {
+      this.treats.get(key)?.destroy();
+      this.treats.delete(key);
+      this.grid[pos.y][pos.x] = EntityType.EMPTY;
+    }
+    this.resume();
+  }
+
+  public resolvePredator(predId: number, success: boolean) {
+    if (success) {
+      // Jump Over / Move to other side
+      const pred = this.predators.find(p => p.data.id === predId);
+      if (pred) {
+        // Calculate "Other Side". 
+        // Simple heuristic: Try to move player 2 steps in current direction (jumping over)
+        // If undefined direction (stationary hit), move away from predator
+        
+        let targetX = this.playerPos.x;
+        let targetY = this.playerPos.y;
+        
+        // If we were moving, jump 2 squares forward (1 is predator, 2 is behind it)
+        if (this.currentDirection) {
+           const next = this.getNextPos(this.playerPos, this.currentDirection); // Predator pos
+           const jump = this.getNextPos(next, this.currentDirection); // Behind predator
+           if (this.isValidJumpTarget(jump)) {
+             targetX = jump.x;
+             targetY = jump.y;
+           } else {
+             // Blocked, try to find any empty neighbor that isn't the predator
+             const neighbors = this.getValidNeighbors(this.playerPos);
+             const safe = neighbors.find(n => n.x !== pred.data.position.x || n.y !== pred.data.position.y);
+             if (safe) { targetX = safe.x; targetY = safe.y; }
+           }
+        } else {
+           // Predator hit us while idle. Move to any neighbor not occupied by predator
+           const neighbors = this.getValidNeighbors(this.playerPos);
+           const safe = neighbors.find(n => n.x !== pred.data.position.x || n.y !== pred.data.position.y);
+           if (safe) { targetX = safe.x; targetY = safe.y; }
+        }
+
+        // Apply Move
+        this.playerPos = { x: targetX, y: targetY };
+        if (this.player) {
+          this.player.x = targetX * CELL_SIZE;
+          this.player.y = targetY * CELL_SIZE;
+        }
+      }
+    } else {
+      // Wrong Answer: Reset to Safe Square (Start)
+      this.resetPlayerPosition();
+    }
+    
+    // Ensure we aren't "inside" the predator anymore physically to prevent instant re-trigger
+    // The jump or reset handles this.
+    
+    this.resume();
+  }
+
+  private getValidNeighbors(pos: Position): Position[] {
+    const res: Position[] = [];
+    const dirs = [{x:0,y:1}, {x:0,y:-1}, {x:1,y:0}, {x:-1,y:0}];
+    for (const d of dirs) {
+      const nx = pos.x + d.x;
+      const ny = pos.y + d.y;
+      if (this.grid[ny] && this.grid[ny][nx] !== EntityType.WALL && this.grid[ny][nx] !== EntityType.GATE) {
+        res.push({x: nx, y: ny});
+      }
+    }
+    return res;
+  }
+
+  private isValidJumpTarget(pos: Position): boolean {
+    if (!this.grid[pos.y] || this.grid[pos.y][pos.x] === undefined) return false;
+    const t = this.grid[pos.y][pos.x];
+    return t !== EntityType.WALL && t !== EntityType.GATE && t !== EntityType.POND;
   }
 
   public unlockGate(pos: Position) {
@@ -384,22 +529,29 @@ export class GameEngine {
     this.isPaused = false;
     this.currentDirection = null;
     this.nextDirection = null;
+    this.heldKeys.clear();
   }
 
   public destroy() {
     window.removeEventListener('keydown', this.handleKeyDown);
-    this.app.destroy(true, { children: true, texture: true, baseTexture: true });
+    window.removeEventListener('keyup', this.handleKeyUp);
+    this.app.destroy(true, { children: true, texture: true });
   }
 
   private resetPlayerPosition() {
     this.playerPos = { x: 1, y: 1 };
     if (this.player) {
       this.player.position.set(this.playerPos.x * CELL_SIZE, this.playerPos.y * CELL_SIZE);
+      // Reset flip
+      const scaleX = Math.abs(this.player.scale.x);
+      this.player.scale.x = scaleX;
+      this.player.anchor.set(0, 0);
     }
     this.isMoving = false;
     this.targetPos = null;
     this.currentDirection = null;
     this.nextDirection = null;
+    this.heldKeys.clear();
   }
 
   private getNextPos(pos: Position, dir: Direction): Position {
