@@ -40,6 +40,9 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
   const [triviaFeedback, setTriviaFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null);
 
+  // Level Complete State
+  const [countdown, setCountdown] = useState(5);
+
   // Trivia Cache State
   const [questionCache, setQuestionCache] = useState<CachedQuestion[]>([]);
   const fetchingPromiseRef = useRef<Promise<CachedQuestion[]> | null>(null);
@@ -237,11 +240,31 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
           break;
         case 'WIN_LEVEL':
           setScore(s => s + 1000);
-          setLevel(l => l + 1);
+          setGameState(GameState.WIN_LEVEL);
           break;
       }
     };
   }); // Runs on every render to update the ref
+
+  // Handle Level Complete Sequence
+  useEffect(() => {
+    if (gameState === GameState.WIN_LEVEL) {
+      setCountdown(5);
+      const interval = setInterval(() => {
+        setCountdown(prev => Math.max(0, prev - 1));
+      }, 1000);
+
+      const timeout = setTimeout(() => {
+        setLevel(prev => prev + 1);
+        setGameState(GameState.PLAYING);
+      }, 5000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [gameState]);
 
   // Initialize Engine ONCE
   useEffect(() => {
@@ -323,6 +346,23 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
           {/* Canvas is injected here */}
         </div>
       </div>
+
+      {/* Level Complete Modal */}
+      {gameState === GameState.WIN_LEVEL && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-500">
+           <div className="text-center">
+              <h1 className="text-6xl md:text-8xl text-yellow-400 font-bold mb-8 animate-bounce drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]">
+                {t.levelComplete}
+              </h1>
+              <div className="text-4xl text-white mb-4">
+                 {t.score}: <span className="text-green-400">{score}</span>
+              </div>
+              <p className="text-2xl text-stone-400 animate-pulse">
+                {t.nextLevelIn} {countdown}...
+              </p>
+           </div>
+        </div>
+      )}
 
       {/* Trivia Modal */}
       {gameState === GameState.TRIVIA && (

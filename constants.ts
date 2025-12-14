@@ -67,6 +67,8 @@ export const TRANSLATIONS = {
     controls: "USE ARROW KEYS",
     loading: "MAKING MAZE...",
     loadingQuestion: "THINKING...",
+    levelComplete: "LEVEL COMPLETE!",
+    nextLevelIn: "Next level in",
     // Settings Screen
     tabGeneral: "General",
     tabPrompts: "Quiz Prompts",
@@ -97,6 +99,8 @@ export const TRANSLATIONS = {
     controls: "USA LAS FLECHAS",
     loading: "CREANDO LABERINTO...",
     loadingQuestion: "PENSANDO...",
+    levelComplete: "¡NIVEL COMPLETADO!",
+    nextLevelIn: "Siguiente nivel en",
     // Settings Screen
     tabGeneral: "General",
     tabPrompts: "Temas Quiz",
@@ -127,6 +131,8 @@ export const TRANSLATIONS = {
     controls: "USA AS SETAS",
     loading: "A CRIAR...",
     loadingQuestion: "A PENSAR...",
+    levelComplete: "NÍVEL CONCLUÍDO!",
+    nextLevelIn: "Próximo nível em",
     // Settings Screen
     tabGeneral: "Geral",
     tabPrompts: "Temas Quiz",
