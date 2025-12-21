@@ -1,5 +1,6 @@
-import { Application, Container, Graphics, Sprite, Texture, Assets } from 'pixi.js';
-import { BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, PALETTE, ASSET_URLS } from '../constants';
+
+import { Application, Container, Sprite, Texture, Assets } from 'pixi.js';
+import { BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, PALETTE } from '../constants';
 import { EntityType, Position, Direction, Predator, Treat, PredatorType, TreatType } from '../types';
 import { generateMaze } from '../services/levelGenerator';
 
@@ -28,20 +29,20 @@ export class GameEngine {
   // State
   private currentDirection: Direction | null = null;
   private nextDirection: Direction | null = null;
-  private heldKeys: Set<string> = new Set(); // For fluid input
+  private heldKeys: Set<string> = new Set(); 
   
   private moveTimer: number = 0;
-  private readonly MOVE_INTERVAL = 12; // Adjusted for smoothness
+  private readonly MOVE_INTERVAL = 12; 
   private isMoving: boolean = false;
   private targetPos: Position | null = null;
   
   private predatorTimer: number = 0;
-  private readonly PREDATOR_INTERVAL = 80; // Slower patrol
+  private readonly PREDATOR_INTERVAL = 80; 
   
   private eventCallback: GameEventCallback;
   private isPaused: boolean = false;
   
-  private time: number = 0; // For animations
+  private time: number = 0; 
 
   constructor(element: HTMLElement, callback: GameEventCallback) {
     this.app = new Application();
@@ -61,27 +62,8 @@ export class GameEngine {
     // @ts-ignore
     document.getElementById('game-canvas-container')?.appendChild(this.app.canvas);
     
-    // Load Assets
-    const bundle = [
-        { alias: 'capybara', src: ASSET_URLS.CAPYBARA },
-        { alias: 'jaguar', src: ASSET_URLS.JAGUAR },
-        { alias: 'anaconda', src: ASSET_URLS.ANACONDA },
-        { alias: 'caiman', src: ASSET_URLS.CAIMAN },
-        { alias: 'wood', src: ASSET_URLS.WOOD },
-        { alias: 'pumpkin', src: ASSET_URLS.PUMPKIN },
-        { alias: 'watermelon', src: ASSET_URLS.WATERMELON },
-        { alias: 'corn', src: ASSET_URLS.CORN },
-        { alias: 'pond', src: ASSET_URLS.POND },
-        { alias: 'wall1', src: ASSET_URLS.WALL1 },
-        { alias: 'wall2', src: ASSET_URLS.WALL2 },
-        { alias: 'wall3', src: ASSET_URLS.WALL3 },
-        { alias: 'path1', src: ASSET_URLS.PATH1 },
-        { alias: 'path2', src: ASSET_URLS.PATH2 },
-    ];
-    
-    await Assets.load(bundle);
-
-    // Map loaded assets
+    // Assets are PRELOADED in App.tsx. We retrieve them from cache.
+    // Note: Aliases in App.tsx are lowercase keys from ASSET_URLS
     this.textures.PLAYER = Assets.get('capybara');
     this.textures[PredatorType.JAGUAR] = Assets.get('jaguar');
     this.textures[PredatorType.ANACONDA] = Assets.get('anaconda');
@@ -142,7 +124,6 @@ export class GameEngine {
     this.grid = data.grid;
     this.playerPos = { ...data.playerStart };
 
-    // Find the pond boundaries (it's a 4x4 area)
     let minPondX = Infinity, minPondY = Infinity;
     let foundPond = false;
 
@@ -153,13 +134,14 @@ export class GameEngine {
         const px = x * CELL_SIZE;
         const py = y * CELL_SIZE;
 
-        // Path tiles for all floor areas
         const pathTex = this.pathTextures[Math.floor(Math.random() * this.pathTextures.length)];
-        const floorSprite = new Sprite(pathTex);
-        floorSprite.position.set(px, py);
-        floorSprite.width = CELL_SIZE;
-        floorSprite.height = CELL_SIZE;
-        this.floor.addChild(floorSprite);
+        const pathSprite = new Sprite(pathTex);
+        pathSprite.position.set(px, py);
+        pathSprite.width = CELL_SIZE;
+        pathSprite.height = CELL_SIZE;
+        // Resetting alpha to 1.0 as requested
+        pathSprite.alpha = 1.0; 
+        this.floor.addChild(pathSprite);
 
         if (type === EntityType.WALL) {
            const wallTex = this.wallTextures[Math.floor(Math.random() * this.wallTextures.length)];
@@ -176,7 +158,6 @@ export class GameEngine {
       }
     }
 
-    // Place Large Pond Sprite
     if (foundPond) {
       this.pondSprite = new Sprite(this.textures.POND);
       this.pondSprite.width = CELL_SIZE * 4;

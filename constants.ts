@@ -21,6 +21,7 @@ export const ASSET_URLS = {
   WALL3: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fwall003.png",
   PATH1: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fpath001.png",
   PATH2: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fpath002.png",
+  LEVEL_COMPLETE: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Flevel_complete.png",
 };
 
 // Visual Palette derived from the reference image

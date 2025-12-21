@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GameSettings, Position, TriviaQuestion, TriviaContext, TriviaContextType, Language } from '../types';
 import { TRANSLATIONS, ASSET_URLS } from '../constants';
@@ -56,7 +57,6 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
   // --- Trivia Logic ---
 
   const loadNewBatch = async (topic: string, lang: Language): Promise<CachedQuestion[]> => {
-    // console.log("Fetching trivia batch from API...");
     const questions = await fetchTriviaBatch(topic, lang);
     return questions.map((q, i) => ({
       ...q,
@@ -80,12 +80,8 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
     return p;
   };
 
-  // Effect: Preload questions on mount or settings change
   useEffect(() => {
-    // Reset cache if topic changed (simple check: if we have questions but they might be wrong topic, 
-    // we just clear. But since we don't store topic in cache item, we rely on the parent effect deps).
     setQuestionCache([]); 
-    
     triggerFetch(settings.selectedPrompt, settings.language).then(newBatch => {
         if (newBatch.length > 0) {
             setQuestionCache(newBatch);
@@ -95,11 +91,8 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
   }, [settings.selectedPrompt, settings.language]);
 
   const getNextQuestion = async (): Promise<TriviaQuestion> => {
-    // 1. Filter candidates from cache (Usage < 1 for fresh questions)
     const candidates = questionCache.filter(q => q.usageCount < 1);
 
-    // 2. Background Refill Strategy
-    // If we have fewer than 5 fresh questions, trigger a background fetch
     if (candidates.length < 5 && !fetchingPromiseRef.current) {
         triggerFetch(settings.selectedPrompt, settings.language).then(newBatch => {
              if (newBatch.length > 0) {
@@ -108,19 +101,14 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
         });
     }
 
-    // 3. Fast Path: Return candidate immediately
     if (candidates.length > 0) {
         const selected = candidates[Math.floor(Math.random() * candidates.length)];
-        
-        // Mark as used in state
         setQuestionCache(prev => prev.map(q => 
             q.localId === selected.localId ? { ...q, usageCount: q.usageCount + 1 } : q
         ));
-        
         return selected;
     }
 
-    // 4. Slow Path: Cache empty. Must wait for fetch.
     let newBatch: CachedQuestion[] = [];
     if (fetchingPromiseRef.current) {
         newBatch = await fetchingPromiseRef.current;
@@ -129,16 +117,12 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
     }
 
     if (newBatch.length > 0) {
-         setQuestionCache(prev => [...prev, ...newBatch]); // Append
-         
+         setQuestionCache(prev => [...prev, ...newBatch]);
          const selected = newBatch[0];
-         // Mark used
          setQuestionCache(prev => prev.map(q => q.localId === selected.localId ? {...q, usageCount: 1} : q));
-         
          return selected;
     }
 
-    // Fallback if API fails
     return {
         question: "Which animal says 'Moo'? (Offline)",
         options: ["Cat", "Cow", "Dog", "Fish"],
@@ -148,7 +132,6 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
 
   const handleTriviaTrigger = async (type: TriviaContextType, data: any) => {
     if (!settings.enableQuizzes) {
-      // Direct pass if quizzes disabled
       if (type === 'GATE') engineRef.current?.unlockGate(data.pos);
       if (type === 'TREAT') {
         engineRef.current?.resolveTreat(data.pos);
@@ -223,9 +206,6 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
     setGameState(GameState.PLAYING);
   };
 
-  // --- Engine Integration ---
-
-  // Keep the Ref updated with the latest version of the handler
   useEffect(() => {
     handleEngineEventRef.current = (event: string, data: any) => {
       switch(event) {
@@ -244,9 +224,8 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
           break;
       }
     };
-  }); // Runs on every render to update the ref
+  }); 
 
-  // Handle Level Complete Sequence
   useEffect(() => {
     if (gameState === GameState.WIN_LEVEL) {
       setCountdown(5);
@@ -266,11 +245,9 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
     }
   }, [gameState]);
 
-  // Initialize Engine ONCE
   useEffect(() => {
     if (!canvasContainerRef.current) return;
 
-    // Proxy calls to the ref
     const proxyCallback = (event: string, data: any) => {
       handleEngineEventRef.current(event, data);
     };
@@ -286,7 +263,7 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
       engineRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps ensure it runs once
+  }, []); 
 
   useEffect(() => {
     if (engineRef.current && level > 1) {
@@ -349,15 +326,22 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
 
       {/* Level Complete Modal */}
       {gameState === GameState.WIN_LEVEL && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-500">
-           <div className="text-center">
-              <h1 className="text-6xl md:text-8xl text-yellow-400 font-bold mb-8 animate-bounce drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in zoom-in duration-500">
+           <div className="text-center max-w-lg w-full">
+              <div className="relative mb-6">
+                <img 
+                  src={ASSET_URLS.LEVEL_COMPLETE} 
+                  alt="Level Complete" 
+                  className="w-full max-w-sm mx-auto drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] animate-bounce"
+                />
+              </div>
+              <h1 className="text-6xl md:text-8xl text-yellow-400 font-bold mb-8 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)] uppercase">
                 {t.levelComplete}
               </h1>
-              <div className="text-4xl text-white mb-4">
-                 {t.score}: <span className="text-green-400">{score}</span>
+              <div className="text-4xl text-white mb-4 bg-stone-800/50 py-4 border-y-4 border-stone-700">
+                 {t.score}: <span className="text-green-400 font-bold">{score}</span>
               </div>
-              <p className="text-2xl text-stone-400 animate-pulse">
+              <p className="text-2xl text-stone-400 tracking-widest">
                 {t.nextLevelIn} {countdown}...
               </p>
            </div>
@@ -381,7 +365,6 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
                </div>
              )}
 
-             {/* State 1: Input (Question & Options) */}
              {!loadingTrivia && currentTrivia && !triviaFeedback && (
                <>
                  <h2 className="text-3xl md:text-5xl mb-8 text-center text-yellow-500 leading-tight">
@@ -401,7 +384,6 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
                </>
              )}
 
-             {/* State 2: Correct Answer Feedback */}
              {!loadingTrivia && currentTrivia && triviaFeedback === 'correct' && (
                 <div className="flex-1 flex flex-col items-center justify-center animate-in zoom-in duration-300">
                     <h2 className="text-3xl text-yellow-600 mb-6 opacity-60 text-center">{currentTrivia.question}</h2>
@@ -416,10 +398,8 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
                 </div>
              )}
 
-             {/* State 3: Wrong Answer Feedback */}
              {!loadingTrivia && currentTrivia && triviaFeedback === 'wrong' && selectedAnswerIndex !== null && (
                 <div className="flex-1 flex flex-col justify-center animate-in slide-in-from-right duration-300 relative">
-                   {/* Top Left: The Wrong Answer */}
                    <div className="absolute top-0 left-0 transform -rotate-3 z-0 opacity-50 pointer-events-none">
                       <div className="text-2xl text-red-500 font-bold mb-1 ml-2">{t.wrong}</div>
                       <div className="bg-stone-800 border-2 border-red-800 p-4 rounded-lg">
@@ -429,7 +409,6 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
                       </div>
                    </div>
 
-                   {/* Center/Right: The Correct Answer */}
                    <div className="flex flex-col items-center justify-center z-10 mt-12">
                       <div className="bg-green-700 border-8 border-green-500 rounded-2xl p-10 shadow-[0_0_50px_rgba(34,197,94,0.4)] w-full text-center">
                           <p className="text-5xl md:text-7xl font-bold text-white">
