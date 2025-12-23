@@ -1,29 +1,59 @@
 import { Language } from './types';
 
+// It sucks but apparently it is the only way with vite
+import splash from "./assets/splash.png";
+import capybara from "./assets/capybara.png";
+import jaguar from "./assets/jaguar.png";
+import anaconda from "./assets/anaconda.png";
+import caiman from "./assets/caiman.png";
+import wood from "./assets/wood.png";
+import pumpkin from "./assets/pumpkin.png";
+import watermelon from "./assets/watermelon.png";
+import corn from "./assets/corn.png";
+import capybara_loading from "./assets/capybara_loading.png";
+import logo from "./assets/logo.png";
+import pond from "./assets/pond.png";
+import wall001 from "./assets/wall001.png";
+import wall002 from "./assets/wall002.png";
+import wall003 from "./assets/wall003.png";
+import path001 from "./assets/path001.png";
+import path002 from "./assets/path002.png";
+import level_complete from "./assets/level_complete.png";
+
 export const CELL_SIZE = 64; // Doubled size for better visibility for kids
 export const BOARD_WIDTH = 20; // 20 * 64 = 1280px
 export const BOARD_HEIGHT = 12; // 12 * 64 = 768px
 
+// export const ASSET_URL = "https://20230229-us.us-southeast-1.linodeobjects.com/capybara/";
+export const ASSET_URL = "./assets/";
+
 export const ASSET_URLS = {
-  SPLASH_IMAGE: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fsplash.png",
-  CAPYBARA: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fcapybara.png",
-  JAGUAR: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fjaguar.png",
-  ANACONDA: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fanaconda.png",
-  CAIMAN: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fcaiman.png",
-  WOOD: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fwood.png",
-  PUMPKIN: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fpumpkin.png",
-  WATERMELON: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fwatermelon.png",
-  CORN: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fcorn.png",
-  LOADING: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fcapybara_loading.png",
-  LOGO: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Flogo.png",
-  POND: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fpond.png",
-  WALL1: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fwall001.png",
-  WALL2: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fwall002.png",
-  WALL3: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fwall003.png",
-  PATH1: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fpath001.png",
-  PATH2: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Fpath002.png",
-  LEVEL_COMPLETE: "https://20230229-us.us-southeast-1.linodeobjects.com/capybara%2Flevel_complete.png",
+  SPLASH_IMAGE: splash,
+  CAPYBARA: capybara,
+  JAGUAR: jaguar,
+  ANACONDA: anaconda,
+  CAIMAN: caiman,
+  WOOD: wood,
+  PUMPKIN: pumpkin,
+  WATERMELON: watermelon,
+  CORN: corn,
+  LOADING: capybara_loading,
+  LOGO: logo,
+  POND: pond,
+  WALL1: wall001,
+  WALL2: wall002,
+  WALL3: wall003,
+  PATH1: path001,
+  PATH2: path002,
+  LEVEL_COMPLETE: level_complete,
 };
+
+// Doesn't work with vite's build
+// export const ASSET_URLS = Object.fromEntries(
+//   Object.entries(ASSETS).map(
+//     ([k, v]) => ([k, new URL(`${ASSET_URL}${v}`, import.meta.url).href])
+//   )
+// );
 
 // Visual Palette derived from the reference image
 export const PALETTE = {

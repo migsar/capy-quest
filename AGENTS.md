@@ -28,7 +28,7 @@ If you are an AI assistant modifying this code, adhere to the following architec
 *   **Lifecycle**: The Engine is instantiated *once* in `useEffect` and cleaned up on unmount.
 
 ### 2. Asset Management
-*   Assets are external URLs defined in `constants.ts`.
+*   Asset URLs are defined in `constants.ts`, assets are in `/src/assets/`.
 *   Textures are pre-loaded in `GameEngine.init()` using `Assets.load()`.
 *   Procedural textures (Dirt, Walls) are generated via `Graphics` to save bandwidth and allow for easy palette swaps.
 *   All text must be created in English(US), Spanish(MX), and Portuguese(PT), text strings are always saved in `constants.ts` and referenced from there.
