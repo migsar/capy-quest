@@ -24,7 +24,6 @@ export const CELL_SIZE = 64; // Doubled size for better visibility for kids
 export const BOARD_WIDTH = 20; // 20 * 64 = 1280px
 export const BOARD_HEIGHT = 12; // 12 * 64 = 768px
 
-// export const ASSET_URL = "https://20230229-us.us-southeast-1.linodeobjects.com/capybara/";
 export const ASSET_URL = "./assets/";
 
 export const ASSET_URLS = {
