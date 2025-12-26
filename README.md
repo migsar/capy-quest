@@ -30,6 +30,7 @@ The application separates **Game State/Logic** from **React UI Rendering** using
 ### 3. Services
 *   **`levelGenerator.ts`:** Pure logic for creating maze arrays (`number[][]`) and placing entities.
 *   **`geminiService.ts`:** Interfaces with Google's GenAI SDK to fetch structured JSON trivia data.
+*   **`quizService.ts`:** Manages trivia question caching, pre-fetching, and delivery to the game.
 
 ## 🛠 Tech Stack
 
@@ -49,6 +50,7 @@ The application separates **Game State/Logic** from **React UI Rendering** using
 │   └── MainMenu.tsx        # Config screen
 ├── services/
 │   ├── geminiService.ts    # AI Generation
+│   ├── quizService.ts      # Quiz Cache & Delivery
 │   └── levelGenerator.ts   # Maze Algorithms
 ├── constants.ts            # Config, Assets, Translations
 ├── types.ts                # TypeScript interfaces and Enums
@@ -67,9 +69,9 @@ Because PixiJS runs on its own `requestAnimationFrame` ticker, passing React sta
 The maze uses a **Recursive Backtracker** algorithm ensuring a perfect maze (no loops, all accessible). We then run a post-processing pass to remove ~40% of walls to create loops, making the gameplay more dynamic and less frustrating.
 
 ### AI Integration & Caching
-The `geminiService` requests JSON-structured data (`responseMimeType: "application/json"`). To prevent gameplay interruptions, the Game component maintains a **trivia cache**:
+The `geminiService` requests JSON-structured data (`responseMimeType: "application/json"`). To prevent gameplay interruptions, the `quizService` maintains a **trivia cache**:
 1.  On game start, a batch of 20 questions is fetched.
-2.  As the player consumes questions, the game triggers background re-fetches when the cache drops below 5 items.
+2.  As the player consumes questions, the service triggers background re-fetches when the cache drops below 5 items.
 
 ## 🎨 Visuals & Assets
 

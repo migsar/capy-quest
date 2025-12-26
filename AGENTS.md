@@ -4,15 +4,16 @@
 This project utilizes the **Google Gemini API** (`@google/genai`) to generate dynamic gameplay content.
 
 ### Trivia Generation System
-*   **Service**: `services/geminiService.ts`
+*   **API Service**: `services/geminiService.ts`
+*   **Quiz Service**: `services/quizService.ts`
 *   **Model**: `gemini-2.5-flash`
 *   **Prompt Engineering**:
     *   Target Audience: 6-year-old children.
     *   Format: JSON Array (strict schema enforcement via `responseSchema`).
     *   Content: Topic-based trivia with 4 options and 1 correct answer index.
-*   **Performance Optimization**:
+*   **Performance Optimization** (handled by `quizService`):
     *   **Batching**: Requests 20 questions at a time to reduce API round-trips.
-    *   **Pre-fetching**: The game initiates a background fetch when the cache runs low (< 5 items) to ensure zero-latency when a player hits a gate.
+    *   **Pre-fetching**: The service initiates a background fetch when the cache runs low (< 5 items) to ensure zero-latency when a player hits a gate.
     *   **Fallback**: Includes an offline fallback question ("Moo" -> "Cow") if the API fails or quota is exceeded.
 
 ## 🏗️ Architecture for Agents
