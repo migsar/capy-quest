@@ -1,11 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Assets } from 'pixi.js';
-import MainMenu from './components/MainMenu';
-import Game from './components/Game';
+
 import { GameSettings, GameState } from './types';
 import { TRANSLATIONS, ASSET_URLS } from './constants';
 import { loadSettings, saveSettings } from './services/storageService';
+
+import MainMenu from './components/MainMenu';
+import Game from './components/Game';
+import GameOverScreen from './components/GameOverScreen';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<GameState>(GameState.MENU);
@@ -125,20 +128,11 @@ const App: React.FC = () => {
 
   if (appState === GameState.GAME_OVER) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4 font-['VT323']">
-        <div className="text-center space-y-6 animate-in fade-in duration-500">
-          <h1 className="text-6xl text-red-600 font-bold mb-4">{t.gameOver}</h1>
-          <div className="text-4xl text-green-400 mb-8">
-            {t.score}: {finalScore}
-          </div>
-          <button 
-            onClick={returnToMenu}
-            className="px-8 py-4 bg-white text-black text-2xl font-bold rounded hover:bg-gray-200 transition-colors uppercase border-b-8 border-gray-400 active:border-b-0 active:translate-y-2"
-          >
-            {t.restart}
-          </button>
-        </div>
-      </div>
+      <GameOverScreen
+        language={settings.language}
+        onButtonClick={returnToMenu}
+        finalScore={finalScore}
+      />
     );
   }
 

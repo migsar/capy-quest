@@ -19,6 +19,7 @@ import wall003 from "./assets/wall003.png";
 import path001 from "./assets/path001.png";
 import path002 from "./assets/path002.png";
 import level_complete from "./assets/level_complete.png";
+import game_over from "./assets/game_over.png";
 
 export const CELL_SIZE = 64; // Doubled size for better visibility for kids
 export const BOARD_WIDTH = 20; // 20 * 64 = 1280px
@@ -45,6 +46,7 @@ export const ASSET_URLS = {
   PATH1: path001,
   PATH2: path002,
   LEVEL_COMPLETE: level_complete,
+  GAME_OVER: game_over,
 };
 
 // Doesn't work with vite's build
