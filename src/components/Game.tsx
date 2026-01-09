@@ -33,7 +33,7 @@ const Game: React.FC<Props> = ({ settings, onGameOver, onExit }) => {
   // Game UI State
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(1);
+  const [lives, setLives] = useState(3);
   const [gameState, setGameState] = useState<GameState>(GameState.PLAYING);
   
   // Quiz State
